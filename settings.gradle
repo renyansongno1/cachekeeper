@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenLocal()
+        mavenCentral()
+    }
+}
+rootProject.name = 'cachekeeper'
+include 'cachekeeper-core'
+include 'cachekeeper-test'
+include 'cachekeeper-spring'
+
