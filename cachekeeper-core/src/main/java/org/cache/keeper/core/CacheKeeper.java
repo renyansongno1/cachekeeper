@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class CacheKeeper<K, V> {
 
     @SuppressWarnings("rawtypes")
-    public static CacheKeeper INSTANCE = new CacheKeeper();
+    public static final CacheKeeper INSTANCE = new CacheKeeper();
 
     private CacheKeeper() {}
 
@@ -84,8 +84,9 @@ public class CacheKeeper<K, V> {
                 }
                 case WRITE_NULL_SOME_TIME -> {
                     // async update cache
-
-                    config.getCacheOperator().writeCache(key, null, leaseId, config.getMissCacheNullValueTimeMs(), TimeUnit.MILLISECONDS);
+                    Thread.ofVirtual().start(
+                            () -> config.getCacheOperator().writeCache(key, null, leaseId, config.getMissCacheNullValueTimeMs(), TimeUnit.MILLISECONDS)
+                    );
                     return null;
                 }
                 default -> throw new IllegalStateException("Unexpected value: " + config.getCachePenetrationStrategy());

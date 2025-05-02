@@ -4,7 +4,7 @@ plugins {
 }
 
 ext {
-
+    jedisVersion = '6.0.0'
 }
 
 allprojects {
@@ -18,5 +18,10 @@ subprojects {
 
     dependencies {
 
+    }
+    
+    repositories {
+        mavenLocal()
+        mavenCentral()
     }
 }
