@@ -32,6 +32,7 @@ public interface ICacheOperator<K, V> {
 
     /**
      * write cache
+     * this method must valid the lease, if the lease is not exist, do not write the expire cache to db
      * @param key cache key
      * @param value cache value
      * @param leaseId lease id

@@ -83,6 +83,8 @@ public class CacheKeeper<K, V> {
                     return null;
                 }
                 case WRITE_NULL_SOME_TIME -> {
+                    // async update cache
+
                     config.getCacheOperator().writeCache(key, null, leaseId, config.getMissCacheNullValueTimeMs(), TimeUnit.MILLISECONDS);
                     return null;
                 }
@@ -93,5 +95,12 @@ public class CacheKeeper<K, V> {
         return reloadedCache;
     }
 
+    /**
+     * when db update, this method must be call
+     * @param key cache key
+     */
+    public void deleteCache(K key) {
+        config.getCacheOperator().deleteCacheAndClearAllLeaseId(key);
+    }
 
 }
