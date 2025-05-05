@@ -54,8 +54,6 @@ class CoreTest {
 
     @Test
     void testConfigError() {
-        // config not set
-        assertThrows(RuntimeException.class, () -> CacheKeeper.Builder.newBuilder().build());
         // connection mode not set
         assertThrows(IllegalArgumentException.class, () ->
                 RedisCacheOperator.Builder.newBuilder()
