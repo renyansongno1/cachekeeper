@@ -27,10 +27,45 @@ public class RedisCacheOperator<K, V> implements ICacheOperator<K, V> {
 
     private static final RedisCacheOperator INSTANCE = new RedisCacheOperator<>();
 
+    private static final String LEASE_ID_QUEUE_NAME = "cache_keeper_lease_list";
+
+    private static final String WRITE_CACHE_CHECK_LUA_SCRIPT = """
+            -- check leaseId
+            local queueKey = KEYS[1]       -- queue key
+            local leaseId = ARGV[1]        -- leaseId
+            local cacheKey = ARGV[2]       -- key
+            local cacheValue = ARGV[3]     -- value
+            local expireTime = tonumber(ARGV[4])  -- expire time
+            
+            local exists = redis.call('LPOS', queueKey, leaseId)
+            
+            if exists ~= nil then
+                redis.call('SET', cacheKey, cacheValue)
+                redis.call('EXPIRE', cacheKey, expireTime)
+                return 1
+            else
+                return 0
+            end
+            """;
+
     /**
      * redis client type
      */
     private RedisClientType redisClientType;
+
+    /**
+     * redis client configuration
+     */
+    private RedisConfiguration redisConfiguration;
+
+    /**
+     * the redis client
+     */
+    private RedisClient<K, V> redisClient;
+
+    private Boolean useLuaSha;
+
+    private String writeCacheScriptSha = null;
 
     private RedisCacheOperator(){}
 
@@ -40,9 +75,12 @@ public class RedisCacheOperator<K, V> implements ICacheOperator<K, V> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void initClient() {
-        switch (redisClientType) {
-            case JEDIS ->
+        redisClient = RedisClientFactory.getInstance().createClient(redisClientType);
+        redisClient.initClient(redisConfiguration);
+        if (useLuaSha) {
+            writeCacheScriptSha = redisClient.loadLuaScript(WRITE_CACHE_CHECK_LUA_SCRIPT);
         }
     }
 
@@ -54,39 +92,71 @@ public class RedisCacheOperator<K, V> implements ICacheOperator<K, V> {
 
     public static class Builder<K, V> {
         private RedisClientType redisClientType;
+        private RedisConfiguration redisConfiguration;
+        private Boolean useLuaSha;
+
         private Builder(){}
+
         public static <K, V> Builder<K, V> newBuilder() {
             return new Builder<>();
         }
+
         public Builder<K, V> redisClientType(RedisClientType redisClientType) {
             this.redisClientType = redisClientType;
             return this;
         }
+
+        public Builder<K, V> redisConfiguration(RedisConfiguration redisConfiguration) {
+            this.redisConfiguration = redisConfiguration;
+            return this;
+        }
+
+        public Builder<K, V> useLuaSha(Boolean useLuaSha) {
+            this.useLuaSha = useLuaSha;
+            return this;
+        }
+
         public RedisCacheOperator<K, V> build() {
             INSTANCE.redisClientType = redisClientType;
+            INSTANCE.redisConfiguration = redisConfiguration;
+            INSTANCE.useLuaSha = useLuaSha;
             INSTANCE.valid();
+            INSTANCE.initClient();
             return INSTANCE;
         }
     }
 
     @Override
     public V readCache(K key) {
-        return null;
+        return redisClient.get(key);
     }
 
     @Override
     public void writeCache(K key, V value, String leaseId, Long expireTime, TimeUnit expireTimeUnit) {
-
+        String[] keys = {LEASE_ID_QUEUE_NAME};
+        String[] args = {leaseId,
+                key.toString(),
+                value.toString(),
+                String.valueOf(expireTimeUnit.toSeconds(expireTime))};
+        if (writeCacheScriptSha != null && !writeCacheScriptSha.isEmpty()) {
+            redisClient.evalSha(writeCacheScriptSha, keys, args);
+            return;
+        }
+        redisClient.evalLua(WRITE_CACHE_CHECK_LUA_SCRIPT, keys, args);
     }
 
     @Override
     public void saveLeaseId(String leaseId) {
-
+        // save the lease id to list?
+        if (leaseId == null || leaseId.isEmpty()) {
+            throw new RuntimeException("lease id is null");
+        }
+        redisClient.lPush(LEASE_ID_QUEUE_NAME, leaseId);
     }
 
     @Override
     public void deleteCacheAndClearAllLeaseId(K key) {
-
+        redisClient.delete(key.toString());
     }
 
     public enum RedisClientType {

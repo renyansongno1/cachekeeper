@@ -16,7 +16,18 @@
 
 package org.cache.keeper.core.cacheoperator.redis;
 
+import org.cache.keeper.core.cacheoperator.redis.jedis.JedisImpl;
+
 public class RedisClientFactory {
+
+    public static final RedisClientFactory INSTANCE = new RedisClientFactory();
+
+    private RedisClientFactory() {
+    }
+
+    public static RedisClientFactory getInstance() {
+        return INSTANCE;
+    }
 
     RedisClient createClient(RedisCacheOperator.RedisClientType redisClientType) {
         switch (redisClientType) {

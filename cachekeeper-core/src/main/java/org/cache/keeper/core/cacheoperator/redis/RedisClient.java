@@ -16,8 +16,55 @@
 
 package org.cache.keeper.core.cacheoperator.redis;
 
-public interface RedisClient {
+public interface RedisClient<K, V> {
 
+    /**
+     * init redis client
+     * the client must init by config
+     * @param redisConfiguration redis client config
+     */
+    void initClient(RedisConfiguration redisConfiguration);
 
+    /**
+     * get value by key
+     * @param key key
+     * @return value
+     */
+    V get(K key);
 
+    /**
+     * load lua script
+     * @param luaScript lua script
+     * @return sha
+     */
+    String loadLuaScript(String luaScript);
+
+    /**
+     * execute the lua script
+     * @param luaScript lua script
+     * @param keys keys
+     * @param args args
+     */
+    void evalLua(String luaScript, String[] keys, String[] args);
+
+    /**
+     * execute the lua sha
+     * @param luaSha lua sha
+     * @param keys keys
+     * @param args args
+     */
+    void evalSha(String luaSha, String[] keys, String[] args)
+
+    /**
+     * push data to queue
+     * @param queueName key name
+     * @param value value
+     */
+    void lPush(String queueName, String value);
+
+    /**
+     * delete data by key
+     * @param key key
+     */
+    void delete(String key);
 }

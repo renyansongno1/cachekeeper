@@ -16,16 +16,5 @@
 
 package org.cache.keeper.core.cacheoperator.redis;
 
-public class JedisImpl implements RedisClient {
-
-    public static final JedisImpl INSTANCE = new JedisImpl();
-    private JedisImpl() {}
-
-    public static JedisImpl getInstance() {
-        return INSTANCE;
-    }
-
-    public static class JedisConfiguration {
-
-    }
+public interface RedisConfiguration {
 }
