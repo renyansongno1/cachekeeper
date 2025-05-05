@@ -27,25 +27,30 @@ import java.util.concurrent.TimeUnit;
 public class CacheKeeper<K, V> {
 
     @SuppressWarnings("rawtypes")
-    public static final CacheKeeper INSTANCE = new CacheKeeper();
+    public static final CacheKeeper INSTANCE = new CacheKeeper<>();
 
     private CacheKeeper() {}
 
     private CacheKeeperConfiguration<K, V> config;
 
-    public static class Builder<K, V> {
-        public Builder<K, V> config(CacheKeeperConfiguration<K,V> config) {
+    public static class Builder {
+        public static Builder newBuilder() {
+            return new Builder();
+        }
+
+        public <K, V> Builder config(CacheKeeperConfiguration<K,V> config) {
             INSTANCE.config = config;
             return this;
         }
 
-        @SuppressWarnings("rawtypes")
-        public CacheKeeper build() {
-            if (INSTANCE.config == null) {
+        @SuppressWarnings("unchecked")
+        public <K, V> CacheKeeper<K, V> build() {
+            CacheKeeper<K, V> instance = (CacheKeeper<K, V>) INSTANCE;
+            if (instance.config == null) {
                 throw new RuntimeException("cache keeper config is null");
             }
-            INSTANCE.validConfig();
-            return INSTANCE;
+            instance.validConfig();
+            return instance;
         }
     }
 

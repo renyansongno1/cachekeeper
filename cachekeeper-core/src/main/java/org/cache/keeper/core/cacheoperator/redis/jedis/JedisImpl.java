@@ -27,11 +27,12 @@ import java.util.stream.Collectors;
 
 public class JedisImpl<K, V> implements RedisClient<K, V> {
 
-    public static final JedisImpl INSTANCE = new JedisImpl();
+    public static final JedisImpl<? ,?> INSTANCE = new JedisImpl<>();
     private JedisImpl() {}
 
-    public static JedisImpl getInstance() {
-        return INSTANCE;
+    @SuppressWarnings("unchecked")
+    public static <K, V> JedisImpl<K, V> getInstance() {
+        return (JedisImpl<K, V>)INSTANCE;
     }
 
     private JedisConfiguration config = null;
@@ -44,7 +45,11 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
     public void initClient(RedisConfiguration redisConfiguration) {
         if (redisConfiguration instanceof JedisConfiguration jedisConfiguration) {
             this.config = jedisConfiguration;
-            switch (jedisConfiguration.getConnectionMode()) {
+            JedisConfiguration.ConnectionMode connectionMode = jedisConfiguration.getConnectionMode();
+            if (connectionMode == null) {
+                throw new IllegalArgumentException("connection mode is not set");
+            }
+            switch (connectionMode) {
                 case STANDALONE -> {
                     JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
                     jedisPoolConfig.setMaxTotal(jedisConfiguration.getStandaloneMaxTotal());
@@ -78,7 +83,7 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
                     jedisPoolConfig.setMaxIdle(jedisConfiguration.getClusterMaxIdle());
                     jedisCluster = new JedisCluster(nodes, timeout, maxAttempts, jedisPoolConfig);
                 }
-                default -> throw new IllegalArgumentException("Unsupported connection mode: " + jedisConfiguration.getConnectionMode());
+                default -> throw new IllegalArgumentException("Unsupported connection mode: " + connectionMode);
             }
         } else {
             throw new IllegalArgumentException("redis configuration is not JedisConfiguration");
@@ -91,7 +96,20 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
             String value = jedisCluster.get(key.toString());
             return (V) value;
         }
-        return (V) jedis.getResource().get(key.toString());
+        try (Jedis resource = jedis.getResource()) {
+            return (V) resource.get(key.toString());
+        }
+    }
+
+    @Override
+    public void set(K key, V value) {
+        if (config.getConnectionMode() == JedisConfiguration.ConnectionMode.CLUSTER) {
+            jedisCluster.set(key.toString(), (String) value);
+            return;
+        }
+        try (Jedis resource = jedis.getResource()) {
+            resource.set(key.toString(), (String) value);
+        }
     }
 
     @Override
@@ -99,7 +117,9 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
         if (config.getConnectionMode() == JedisConfiguration.ConnectionMode.CLUSTER) {
             return jedisCluster.scriptLoad(luaScript);
         }
-        return jedis.getResource().scriptLoad(luaScript);
+        try (Jedis resource = jedis.getResource()) {
+            return resource.scriptLoad(luaScript);
+        }
     }
 
     @Override
@@ -108,7 +128,9 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
             jedisCluster.eval(luaScript, Arrays.stream(keys).toList(), Arrays.stream(args).toList());
             return;
         }
-        jedis.getResource().eval(luaScript, Arrays.stream(keys).toList(), Arrays.stream(args).toList());
+        try (Jedis resource = jedis.getResource()) {
+            resource.eval(luaScript, Arrays.stream(keys).toList(), Arrays.stream(args).toList());
+        }
     }
 
     @Override
@@ -117,7 +139,9 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
             jedisCluster.evalsha(luaSha, Arrays.stream(keys).toList(), Arrays.stream(args).toList());
             return;
         }
-        jedis.getResource().evalsha(luaSha, Arrays.stream(keys).toList(), Arrays.stream(args).toList());
+        try (Jedis resource = jedis.getResource()) {
+            resource.evalsha(luaSha, Arrays.stream(keys).toList(), Arrays.stream(args).toList());
+        }
     }
 
     @Override
@@ -125,7 +149,9 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
         if (config.getConnectionMode() == JedisConfiguration.ConnectionMode.CLUSTER) {
             jedisCluster.lpush(queueName, value);
         }
-        jedis.getResource().lpush(queueName, value);
+        try (Jedis resource = jedis.getResource()) {
+            resource.lpush(queueName, value);
+        }
     }
 
     @Override
@@ -133,6 +159,8 @@ public class JedisImpl<K, V> implements RedisClient<K, V> {
         if (config.getConnectionMode() == JedisConfiguration.ConnectionMode.CLUSTER) {
             jedisCluster.del(key);
         }
-        jedis.getResource().del(key);
+        try (Jedis resource = jedis.getResource()) {
+            resource.del(key);
+        }
     }
 }

@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class RedisCacheOperator<K, V> implements ICacheOperator<K, V> {
 
-    private static final RedisCacheOperator INSTANCE = new RedisCacheOperator<>();
+    private static final RedisCacheOperator<?, ?> INSTANCE = new RedisCacheOperator<>();
 
     private static final String LEASE_ID_QUEUE_NAME = "cache_keeper_lease_list";
 
@@ -79,50 +79,52 @@ public class RedisCacheOperator<K, V> implements ICacheOperator<K, V> {
     public void initClient() {
         redisClient = RedisClientFactory.getInstance().createClient(redisClientType);
         redisClient.initClient(redisConfiguration);
-        if (useLuaSha) {
+        if (Boolean.TRUE.equals(useLuaSha)) {
             writeCacheScriptSha = redisClient.loadLuaScript(WRITE_CACHE_CHECK_LUA_SCRIPT);
         }
     }
 
     // getter start
-    public RedisClientType getRedisClientType() {
-        return redisClientType;
+    public RedisClient<K, V> getRedisClient() {
+        return redisClient;
     }
     // getter end
 
-    public static class Builder<K, V> {
+    public static class Builder {
         private RedisClientType redisClientType;
         private RedisConfiguration redisConfiguration;
         private Boolean useLuaSha;
 
         private Builder(){}
 
-        public static <K, V> Builder<K, V> newBuilder() {
-            return new Builder<>();
+        public static Builder newBuilder() {
+            return new Builder();
         }
 
-        public Builder<K, V> redisClientType(RedisClientType redisClientType) {
+        public Builder redisClientType(RedisClientType redisClientType) {
             this.redisClientType = redisClientType;
             return this;
         }
 
-        public Builder<K, V> redisConfiguration(RedisConfiguration redisConfiguration) {
+        public Builder redisConfiguration(RedisConfiguration redisConfiguration) {
             this.redisConfiguration = redisConfiguration;
             return this;
         }
 
-        public Builder<K, V> useLuaSha(Boolean useLuaSha) {
+        public Builder useLuaSha(Boolean useLuaSha) {
             this.useLuaSha = useLuaSha;
             return this;
         }
 
-        public RedisCacheOperator<K, V> build() {
-            INSTANCE.redisClientType = redisClientType;
-            INSTANCE.redisConfiguration = redisConfiguration;
-            INSTANCE.useLuaSha = useLuaSha;
-            INSTANCE.valid();
-            INSTANCE.initClient();
-            return INSTANCE;
+        @SuppressWarnings("unchecked")
+        public <K, V> RedisCacheOperator<K, V> build() {
+            RedisCacheOperator<K, V> instance = (RedisCacheOperator<K, V>) INSTANCE;
+            instance.redisClientType = redisClientType;
+            instance.redisConfiguration = redisConfiguration;
+            instance.useLuaSha = useLuaSha;
+            instance.valid();
+            instance.initClient();
+            return instance;
         }
     }
 
@@ -136,7 +138,7 @@ public class RedisCacheOperator<K, V> implements ICacheOperator<K, V> {
         String[] keys = {LEASE_ID_QUEUE_NAME};
         String[] args = {leaseId,
                 key.toString(),
-                value.toString(),
+                value == null ? "" :value.toString(),
                 String.valueOf(expireTimeUnit.toSeconds(expireTime))};
         if (writeCacheScriptSha != null && !writeCacheScriptSha.isEmpty()) {
             redisClient.evalSha(writeCacheScriptSha, keys, args);

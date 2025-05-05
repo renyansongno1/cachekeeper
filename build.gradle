@@ -5,6 +5,8 @@ plugins {
 
 ext {
     jedisVersion = '6.0.0'
+    testContainer = '1.21.0'
+    jUnit = '5.12.2'
 }
 
 allprojects {

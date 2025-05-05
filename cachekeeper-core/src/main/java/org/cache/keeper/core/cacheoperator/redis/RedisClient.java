@@ -33,6 +33,13 @@ public interface RedisClient<K, V> {
     V get(K key);
 
     /**
+     * normal set
+     * @param key key
+     * @param value value
+     */
+    void set(K key, V value);
+
+    /**
      * load lua script
      * @param luaScript lua script
      * @return sha

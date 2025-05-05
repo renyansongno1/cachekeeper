@@ -20,6 +20,8 @@ import org.cache.keeper.core.cacheoperator.redis.RedisConfiguration;
 
 public class JedisConfiguration implements RedisConfiguration {
 
+    private JedisConfiguration(){}
+
     private ConnectionMode connectionMode;
 
     private String standaloneHost = "127.0.0.1";

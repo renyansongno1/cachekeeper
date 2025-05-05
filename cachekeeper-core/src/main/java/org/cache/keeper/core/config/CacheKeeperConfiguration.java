@@ -92,8 +92,8 @@ public class CacheKeeperConfiguration<K, V> {
         }
     }
 
-    public static class Builder<K, V> {
-        private ICacheOperator<K, V> cacheOperator;
+    public static class Builder {
+        private ICacheOperator<?, ?> cacheOperator;
         private CachePenetrationStrategy cachePenetrationStrategy;
         private Long missCacheNullValueTimeMs;
         private Long cacheExpireTime;
@@ -102,42 +102,43 @@ public class CacheKeeperConfiguration<K, V> {
         private Builder() {
         }
 
-        public static <K, V> Builder<K, V> newBuilder() {
-            return new Builder<>();
+        public static Builder newBuilder() {
+            return new Builder();
         }
 
-        public Builder<K, V> cacheOperator(ICacheOperator<K, V> cacheOperator) {
+        public <K, V> Builder cacheOperator(ICacheOperator<K, V> cacheOperator) {
             this.cacheOperator = cacheOperator;
             return this;
         }
 
-        public Builder<K, V> cachePenetrationStrategy(CachePenetrationStrategy cachePenetrationStrategy) {
+        public Builder cachePenetrationStrategy(CachePenetrationStrategy cachePenetrationStrategy) {
             this.cachePenetrationStrategy = cachePenetrationStrategy;
             return this;
         }
 
-        public Builder<K, V> missCacheNullValueTimeMs(Long missCacheNullValueTimeMs) {
+        public Builder missCacheNullValueTimeMs(Long missCacheNullValueTimeMs) {
             this.missCacheNullValueTimeMs = missCacheNullValueTimeMs;
             return this;
         }
 
-        public Builder<K, V> cacheExpireTime(Long cacheExpireTime) {
+        public Builder cacheExpireTime(Long cacheExpireTime) {
             this.cacheExpireTime = cacheExpireTime;
             return this;
         }
 
-        public Builder<K, V> cacheExpireTimeUnit(TimeUnit cacheExpireTimeUnit) {
+        public Builder cacheExpireTimeUnit(TimeUnit cacheExpireTimeUnit) {
             this.cacheExpireTimeUnit = cacheExpireTimeUnit;
             return this;
         }
 
-        public CacheKeeperConfiguration<K, V> build() {
+        @SuppressWarnings("unchecked")
+        public <K, V> CacheKeeperConfiguration<K, V> build() {
             CacheKeeperConfiguration<K, V> config = new CacheKeeperConfiguration<>();
-            config.cacheOperator = this.cacheOperator;
-            config.cachePenetrationStrategy = cachePenetrationStrategy;
-            config.missCacheNullValueTimeMs = missCacheNullValueTimeMs;
-            config.cacheExpireTime = cacheExpireTime;
-            config.cacheExpireTimeUnit = cacheExpireTimeUnit;
+            config.cacheOperator = (ICacheOperator<K, V>) this.cacheOperator;
+            config.cachePenetrationStrategy = this.cachePenetrationStrategy;
+            config.missCacheNullValueTimeMs = this.missCacheNullValueTimeMs;
+            config.cacheExpireTime = this.cacheExpireTime;
+            config.cacheExpireTimeUnit = this.cacheExpireTimeUnit;
             config.checkConfig();
             return config;
         }

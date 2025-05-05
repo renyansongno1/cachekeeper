@@ -1,3 +1,16 @@
 dependencies {
+    testImplementation "org.testcontainers:testcontainers:${testContainer}"
+    implementation platform("org.testcontainers:testcontainers-bom:${testContainer}")
+    testImplementation "org.testcontainers:junit-jupiter:${testContainer}"
 
+    testImplementation(platform("org.junit:junit-bom:${jUnit}"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation "org.junit.jupiter:junit-jupiter:${jUnit}"
+
+    implementation project(':cachekeeper-core')
+}
+
+test {
+    useJUnitPlatform()
 }
