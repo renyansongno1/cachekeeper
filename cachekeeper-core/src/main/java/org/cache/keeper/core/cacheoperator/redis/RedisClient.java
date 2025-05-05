@@ -53,7 +53,7 @@ public interface RedisClient<K, V> {
      * @param keys keys
      * @param args args
      */
-    void evalSha(String luaSha, String[] keys, String[] args)
+    void evalSha(String luaSha, String[] keys, String[] args);
 
     /**
      * push data to queue
